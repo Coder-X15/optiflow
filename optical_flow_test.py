@@ -28,35 +28,44 @@ def compute_optical_flow(frame1, frame2, scale=0.5, blur_ksize=(5,5), method="fa
         p1, st, err = cv2.calcOpticalFlowPyrLK(gray1, gray2, p0, None, **lk_params)
         return np.hstack((p0, p1, st))  # Returns a NumPy array containing tracked points
 
-# Load frames
-frame1 = cv2.imread("img4.png")
-frame2 = cv2.imread("img5.png")
 
-# Check if images are loaded correctly
-if frame1 is None or frame2 is None:
-    print("Error: Could not read input images. Check file paths.")
+cap = cv2.VideoCapture(2)
+if not cap.isOpened():
+    print("Error: Could not open camera.")
     exit()
+i=0
+ret1,frame1=cap.read()
+while True:
+    ret2, frame2 = cap.read()
+    
+    if not ret2:
+        print("Error: Failed to capture frame.")
+        break
 
-# Compute Optical Flow
-flow = compute_optical_flow(frame1, frame2, method="farneback")
+    #detecting flow
+    flow = compute_optical_flow(frame1, frame2, method="farneback")
 
-# Convert flow array into a visualization
-h, w = flow.shape[:2]
-flow_magnitude, flow_angle = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+    # Convert flow array into a visualization
+    h, w = flow.shape[:2]
+    flow_magnitude, flow_angle = cv2.cartToPolar(flow[..., 0], flow[..., 1])
 
-# Normalize flow magnitude
-flow_magnitude = cv2.normalize(flow_magnitude, None, 0, 255, cv2.NORM_MINMAX)
-flow_magnitude = flow_magnitude.astype(np.uint8)
+    # Normalize flow magnitude
+    flow_magnitude = cv2.normalize(flow_magnitude, None, 0, 255, cv2.NORM_MINMAX)
+    flow_magnitude = flow_magnitude.astype(np.uint8)
 
-# Apply color map to visualize the flow
-flow_colormap = cv2.applyColorMap(flow_magnitude, cv2.COLORMAP_JET)
+    # Apply color map to visualize the flow
+    flow_colormap = cv2.applyColorMap(flow_magnitude, cv2.COLORMAP_JET)
 
-# Show result
-cv2.imshow("Optical Flow Visualization", flow_colormap)
-cv2.waitKey(0)
+    cv2.imshow("Optical Flow Visualization", cv2.resize(cv2.rotate(flow_colormap, cv2.ROTATE_180), (500,500)))
+    cv2.imshow("Input feed", cv2.resize(cv2.rotate(frame2, cv2.ROTATE_180), (500,500)))
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to quit
+        break
+    ret1, frame1 = ret2, frame2
+    
+
+cap.release()
 cv2.destroyAllWindows()
-
-print("Optical Flow Computed and Visualized!")
 
 
 
