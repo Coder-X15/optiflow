@@ -1,54 +1,68 @@
 import cv2
 import numpy as np
 
-cap = cv2.VideoCapture(0)
+def compute_optical_flow(frame1, frame2, scale=0.5, blur_ksize=(5,5), method="farneback"):
+    # Resize images
+    frame1_resized = cv2.resize(frame1, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
+    frame2_resized = cv2.resize(frame2, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
 
-feature_params = dict(maxCorners=100, qualityLevel=0.3, minDistance=7, blockSize=7)
-lk_params = dict(winSize=(15, 15), maxLevel=2,
-                 criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+    # Convert to grayscale
+    gray1 = cv2.cvtColor(frame1_resized, cv2.COLOR_BGR2GRAY)
+    gray2 = cv2.cvtColor(frame2_resized, cv2.COLOR_BGR2GRAY)
 
-color = np.random.randint(0, 255, (100, 3))
+    # Apply Gaussian blur (optional)
+    if blur_ksize:
+        gray1 = cv2.GaussianBlur(gray1, blur_ksize, 0)
+        gray2 = cv2.GaussianBlur(gray2, blur_ksize, 0)
 
-ret, old_frame = cap.read()
-old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
-p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
-
-mask = np.zeros_like(old_frame, dtype=np.uint8)  # Use uint8 for smooth blending
-
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-
-    frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    
     # Compute optical flow
-    p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
+    if method == "farneback":
+        flow = cv2.calcOpticalFlowFarneback(gray1, gray2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
+        return flow  # Returns a NumPy array of shape (H, W, 2)
 
-    if p1 is not None:
-        good_new = p1[st == 1]
-        good_old = p0[st == 1]
+    elif method == "lucas-kanade":
+        feature_params = dict(maxCorners=100, qualityLevel=0.3, minDistance=7, blockSize=7)
+        lk_params = dict(winSize=(15, 15), maxLevel=2, criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 
-        # Draw motion tracks
-        for i, (new, old) in enumerate(zip(good_new, good_old)):
-            a, b = new.ravel()
-            c, d = old.ravel()
-            mask = cv2.line(mask, (int(a), int(b)), (int(c), int(d)), color[i].tolist(), 2)
-            frame = cv2.circle(frame, (int(a), int(b)), 5, color[i].tolist(), -1)
+        p0 = cv2.goodFeaturesToTrack(gray1, mask=None, **feature_params)
+        p1, st, err = cv2.calcOpticalFlowPyrLK(gray1, gray2, p0, None, **lk_params)
+        return np.hstack((p0, p1, st))  # Returns a NumPy array containing tracked points
 
-        old_gray = frame_gray.copy()
-        p0 = good_new.reshape(-1, 1, 2)
+# Load frames
+frame1 = cv2.imread("img4.png")
+frame2 = cv2.imread("img5.png")
 
-    # Apply fading effect by blending mask with a transparent layer
-    mask = (mask * 0.9).astype(np.uint8)  # Reduce intensity over time
+# Check if images are loaded correctly
+if frame1 is None or frame2 is None:
+    print("Error: Could not read input images. Check file paths.")
+    exit()
 
-    # Merge the fading mask with the live frame
-    img = cv2.addWeighted(frame, 1, mask, 0.5, 0)
+# Compute Optical Flow
+flow = compute_optical_flow(frame1, frame2, method="farneback")
 
-    cv2.imshow('Optical Flow - Lucas Kanade', img)
-    
-    if cv2.waitKey(1) & 0xFF == 27:  # Press 'Esc' to exit
-        break
+# Convert flow array into a visualization
+h, w = flow.shape[:2]
+flow_magnitude, flow_angle = cv2.cartToPolar(flow[..., 0], flow[..., 1])
 
-cap.release()
+# Normalize flow magnitude
+flow_magnitude = cv2.normalize(flow_magnitude, None, 0, 255, cv2.NORM_MINMAX)
+flow_magnitude = flow_magnitude.astype(np.uint8)
+
+# Apply color map to visualize the flow
+flow_colormap = cv2.applyColorMap(flow_magnitude, cv2.COLORMAP_JET)
+
+# Show result
+cv2.imshow("Optical Flow Visualization", flow_colormap)
+cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+print("Optical Flow Computed and Visualized!")
+
+
+
+
+
+
+
+    
+
