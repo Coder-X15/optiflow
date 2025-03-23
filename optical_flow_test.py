@@ -75,15 +75,20 @@ while True:
     flow2_magnitude=robust_normalization(flow2_magnitude)
 
     flow2_magnitude = flow2_magnitude.astype(np.uint8)
-    # import scipy.ndimage  
-    # flow1_magnitude = scipy.ndimage.median_filter(flow1_magnitude, size=3)
-    # flow2_magnitude = scipy.ndimage.median_filter(flow2_magnitude, size=3)  
+    import scipy.ndimage  
+    #flow1_magnitude = scipy.ndimage.median_filter(flow1_magnitude, size=3)
+    flow2_magnitude_filtered= scipy.ndimage.median_filter(flow2_magnitude, size=3)  
 
 
     # Apply color map to visualize the flow
     flow2_colormap = cv2.applyColorMap(flow2_magnitude, cv2.COLORMAP_JET)
+    flow2_colormap_f = cv2.applyColorMap(flow2_magnitude_filtered, cv2.COLORMAP_JET)
+    
 
     cv2.imshow("farenback optical flow", cv2.resize(flow2_colormap,(500, 500)))
+    # cv2.imshow("farenback optical flow filtered", cv2.resize(flow2_colormap_f,(500, 500)))
+    
+    
     cv2.imshow("Input feed", cv2.resize(frame2, (500, 500)))
 
     if cv2.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to quit
