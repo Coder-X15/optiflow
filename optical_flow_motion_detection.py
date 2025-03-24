@@ -7,10 +7,14 @@ def compute_grid_flow(flow_magnitude, flow_direction):
         OUTPUT: a tuple of the form (net_magnitude,direction_angle) of the resultant vector of all flow vectors in the frame'''
     x_net = 0
     y_net = 0
+
     for i in range(flow_magnitude.shape[0]):
         for j in range(flow_magnitude.shape[1]):
             x_net += flow_magnitude[i, j] * math.cos(flow_direction[i, j])
             y_net += flow_magnitude[i, j] * math.sin(flow_direction[i, j]) * -1
+
+    x_net/=(flow_magnitude.shape[0]*flow_magnitude.shape[1])
+    y_net/=(flow_magnitude.shape[0]*flow_magnitude.shape[1])
     return (math.sqrt(x_net**2 + y_net**2),(2*math.pi)- math.atan2(y_net, x_net))
 
 
@@ -32,7 +36,8 @@ def compute_net_flow(grids):
         for col in range(len(grids[row])):
             net_flow_x += grids[row][col][0] * math.cos(grids[row][col][1])
             net_flow_y += grids[row][col][0] * math.sin(grids[row][col][1]) * -1  # Negating y for correct flow
-
+    net_flow_x/=9
+    net_flow_y/=9
     # Computing net translational flow vector
     net_translation_vector = (
         math.sqrt(net_flow_x**2 + net_flow_y**2),

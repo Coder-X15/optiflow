@@ -2,9 +2,6 @@ import cv2 as cv
 import numpy as np
 
 def generate_depth_frame(left, right):
-    # Read the frames
-    left = cv.imread(left)
-    right = cv.imread(right)
 
     left_gray = cv.cvtColor(left, cv.COLOR_RGB2GRAY)
     right_gray = cv.cvtColor(right, cv.COLOR_RGB2GRAY)
@@ -70,10 +67,39 @@ def generate_depth_frame(left, right):
     
     return disparity_colormap
 
-left_image_path = 'l1.png'
-right_image_path = 'r1.png'
+cap1= cv.VideoCapture(4)  
+# Change according to camera input
+cap2=cv.VideoCapture(2)
 
-disparity_map = generate_depth_frame(left_image_path, right_image_path)
-cv.imshow('Disparity Map', cv.GaussianBlur(disparity_map, (5, 5), 0))
-cv.waitKey(0)
-cv.destroyAllWindows()
+
+if not cap1.isOpened() and cap2.isOpened():
+    print("Error: Could not open camera.")
+    exit()
+
+ret1, l_frame = cap1.read()
+ret2, r_frame=cap2.read()
+if not (ret1 or ret2):
+    print("Error: Failed to capture initial frame.")
+    cap1.release()
+    cap2.release()
+    exit()
+
+while True:
+    ret1, l_frame= cap1.read()
+    ret2, r_frame= cap2.read()
+    if not (ret1 or ret2):
+        print("Error: Failed to capture frame.")
+        break
+
+    # generating desparity map
+    disparity_map = generate_depth_frame(l_frame,r_frame)
+    cv.imshow('l_camera', l_frame)
+    cv.imshow('r_camera', r_frame)
+    cv.imshow('Disparity Map', cv.GaussianBlur(disparity_map, (5, 5), 0))
+
+    if cv.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to quit
+        cv.waitKey(0)
+        cv.destroyAllWindows()
+        break
+
+
