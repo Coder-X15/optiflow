@@ -107,9 +107,8 @@ def detect_motion(frame1, frame2):
     gray1 = cv2.cvtColor(frame1_resized, cv2.COLOR_BGR2GRAY)
     gray2 = cv2.cvtColor(frame2_resized, cv2.COLOR_BGR2GRAY)
 
-    # Detecting flow using PCA
-    pca_flow = cv2.optflow.createOptFlow_PCAFlow()
-    flow = pca_flow.calc(gray1, gray2, None)
+    # Detecting flow using Farneback    
+    flow = cv2.calcOpticalFlowFarneback(gray1, gray2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
     flow_magnitude, flow_angles = cv2.cartToPolar(flow[..., 0], flow[..., 1])
 
     # Removing noise
@@ -137,32 +136,3 @@ def detect_motion(frame1, frame2):
     
     
 
-# MAIN CODE
-cap = cv2.VideoCapture(2)  # Change according to camera input
-if not cap.isOpened():
-    print("Error: Could not open camera.")
-    exit()
-
-ret1, frame1 = cap.read()
-if not ret1:
-    print("Error: Failed to capture initial frame.")
-    cap.release()
-    exit()
-
-while True:
-    ret2, frame2 = cap.read()
-    
-    if not ret2:
-        print("Error: Failed to capture frame.")
-        break
-
-    # Detecting flow
-    flow_translational_rotational = detect_motion(frame1, frame2)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to quit
-        break
-
-    frame1 = frame2.copy()
-
-cap.release()
-cv2.destroyAllWindows()
