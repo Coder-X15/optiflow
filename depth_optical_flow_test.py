@@ -11,11 +11,10 @@ cap2 = cv.VideoCapture(4) # Change according to camera input
 #initializing parameters
 
 h_fov= 70#in degrees
-v_fov= 70# in degrees
+v_fov= 45.83# in degrees
 #converting fovs to radians
 h_fov=h_fov*(math.pi/180)
 v_fov=v_fov*(math.pi/180)
-
 altitude= 3 # in metres
 
 
