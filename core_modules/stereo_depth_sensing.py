@@ -1,7 +1,20 @@
 import cv2 as cv
 import numpy as np
 
-def generate_depth_frame(left, right):
+def generate_depth_frame(left, right,cam_focal_length= 4.4e-3, baseline=25e-2):
+    '''
+    INPUT:
+
+    Parameters:
+        left: left camera feed as numpy array
+        right: right camera feed as numpy array
+        cam_focal_length:focal length of the camera used in the stereo cam module (in metres)
+        baseline: relative separation of the cameras in the stereo-camera design (in metres)(default 25 cm (0.25 m))
+
+    OUTPUT:
+    Numpy array corresponding to the depth frame in metres.
+        
+    '''
 
     left_gray = cv.cvtColor(left, cv.COLOR_RGB2GRAY)
     right_gray = cv.cvtColor(right, cv.COLOR_RGB2GRAY)
@@ -16,8 +29,8 @@ def generate_depth_frame(left, right):
     imgR = clahe.apply(imgR)
 
     # StereoSGBM Parameters
-    min_disparity = 3
-    num_disparities = 16*4# Must be a multiple of 16
+    min_disparity = 5
+    num_disparities = 16*4  # Must be a multiple of 16
     block_size = 3  # Should be an odd number
     p1 = 8 * block_size**2  # Smoothness parameter 1
     p2 = 32 * block_size**2  # Smoothness parameter 2
@@ -59,49 +72,11 @@ def generate_depth_frame(left, right):
     disparity_visual = cv.normalize(filtered_disparity, None, alpha=0, beta=255, norm_type=cv.NORM_MINMAX)
     disparity_visual = np.uint8(disparity_visual)
 
-    # Apply a colormap to enhance visibility
-    disparity_colormap = cv.applyColorMap(disparity_visual, cv.COLORMAP_JET)
-    disparity_colormap=disparity_colormap[:, 70::]
-    return disparity_colormap
+    # Avoid division by zero or negative disparities
+    valid_disparity = np.where(filtered_disparity > 0, filtered_disparity, 1e-6)
+    depth_map = (cam_focal_length * baseline) / valid_disparity
 
-cap1= cv.VideoCapture(2)  
-# Change according to camera input
-cap2=cv.VideoCapture(4)
+    #defining region of interest by slicing
+    depth_map=depth_map[:,70:: ]
 
-
-if not cap1.isOpened() and cap2.isOpened():
-    print("Error: Could not open camera.")
-    exit()
-
-ret1, l_frame = cap1.read()
-ret2, r_frame=cap2.read()
-l_frame=cv.resize(l_frame, (l_frame.shape[1]//2,l_frame.shape[0]//2), interpolation=cv.INTER_LANCZOS4)
-r_frame=cv.resize(r_frame, (r_frame.shape[1]//2,r_frame.shape[0]//2), interpolation=cv.INTER_LANCZOS4)
-if not (ret1 or ret2):
-    print("Error: Failed to capture initial frame.")
-    cap1.release()
-    cap2.release()
-    exit()
-
-while True:
-    ret1, l_frame= cap1.read()
-    ret2, r_frame= cap2.read()
-    l_frame=cv.resize(l_frame, (l_frame.shape[1]//2,l_frame.shape[0]//2),interpolation=cv.INTER_LANCZOS4)
-    r_frame=cv.resize(r_frame, (r_frame.shape[1]//2,r_frame.shape[0]//2),interpolation=cv.INTER_LANCZOS4)
-    if not (ret1 or ret2):
-        print("Error: Failed to capture frame.")
-        break
-
-    # generating desparity map
-    disparity_map = generate_depth_frame(l_frame,r_frame)
-    cv.imshow('l_camera', l_frame)
-    cv.imshow('r_camera', r_frame)
-    cv.imshow('Filtered Disparity Map', cv.resize(disparity_map, (disparity_map.shape[1]*4, disparity_map.shape[0]*4)))
-    print("OUTPUT FRAME SHAPE: ",disparity_map.shape)
-
-    if cv.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to quit
-        cv.waitKey(0)
-        cv.destroyAllWindows()
-        break
-
-
+    return depth_map
