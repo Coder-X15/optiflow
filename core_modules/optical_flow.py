@@ -2,7 +2,7 @@ import cv2
 import math
 import numpy as np
 
-def compute_grid_flow(flow_magnitude, flow_direction,fov_x, fov_y,frame_width, frame_height, altitude, frame_rate):
+def compute_grid_flow(flow_magnitude, flow_direction,frame_width, frame_height, altitude, frame_rate,fov_x=45.83*math.pi/180, fov_y=70*math.pi/180):
     ''' INPUT: a 2D flow_magnitude frame  where each cell corresponds to the magnitude of flow vector at the corresponding pixel\t,\n
                 another 2D flow_direction frame where each cell corresponds to the angle of flow vector  with repect to x axis at the corresponding pixel\t,\n
                 horizontal_fov of stereocamera, vertical_fov of stereocamera, altitude and frame rate
@@ -115,7 +115,7 @@ def compute_net_flow(grids, fov_x, fov_y,frame_width, frame_height, altitude):
     
 
 
-def detect_motion(depth_frame1, depth_frame2, h_fov, v_fov,altitude, frame_rate):
+def detect_motion(depth_frame1, depth_frame2, altitude, frame_rate, h_fov=45.83*math.pi/180, v_fov=70*math.pi/180):
 
     #determining frame_height and frame_width
     frame_height=depth_frame1.shape[1]
