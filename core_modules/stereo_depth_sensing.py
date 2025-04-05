@@ -16,6 +16,10 @@ def generate_depth_frame(left, right,cam_focal_length= 4.4e-3, baseline=25e-2):
         
     '''
 
+    #resizing for efficient computation
+    left = cv.resize(left,(left.shape[1]//2, left.shape[0]//2))    
+    right = cv.resize(right, (right.shape[1]//2, right.shape[0]//2))
+
     left_gray = cv.cvtColor(left, cv.COLOR_RGB2GRAY)
     right_gray = cv.cvtColor(right, cv.COLOR_RGB2GRAY)
 
