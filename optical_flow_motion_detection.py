@@ -5,16 +5,9 @@ def compute_grid_flow(flow_magnitude, flow_direction):
     ''' INPUT: a 2D flow_magnitude frame  where each cell corresponds to the magnitude of flow vector at the corresponding pixel\tand\n
                 another 2D flow_direction frame where each cell corresponds to the angle of flow vector  with repect to x axis at the corresponding pixel
         OUTPUT: a tuple of the form (net_magnitude,direction_angle) of the resultant vector of all flow vectors in the frame'''
-    x_net = 0
-    y_net = 0
+    x_net = (flow_magnitude * math.cos(flow_direction)).trace()/(flow_magnitude.shape[0]*flow_magnitude.shape[1])
+    y_net = (flow_magnitude * math.sin(flow_direction) * -1).trace()/(flow_magnitude.shape[0]*flow_magnitude.shape[1])
 
-    for i in range(flow_magnitude.shape[0]):
-        for j in range(flow_magnitude.shape[1]):
-            x_net += flow_magnitude[i, j] * math.cos(flow_direction[i, j])
-            y_net += flow_magnitude[i, j] * math.sin(flow_direction[i, j]) * -1
-
-    x_net/=(flow_magnitude.shape[0]*flow_magnitude.shape[1])
-    y_net/=(flow_magnitude.shape[0]*flow_magnitude.shape[1])
     return (math.sqrt(x_net**2 + y_net**2),(2*math.pi)- math.atan2(y_net, x_net))
 
 
@@ -100,12 +93,14 @@ def display_flow(translational_flow_vector_polar,rotational_flow_magnitude ):
 def detect_motion(frame1, frame2):
     # Resizing frames
     scale = 0.5
-    frame1_resized = cv2.resize(frame1, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
-    frame2_resized = cv2.resize(frame2, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
+
+    # we're resizing the input grayscale images
+    gray1  = cv2.resize(frame1, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
+    gray2  = cv2.resize(frame2, None, fx=scale, fy=scale, interpolation=cv2.INTER_LINEAR)
 
     # Convert to grayscale
-    gray1 = cv2.cvtColor(frame1_resized, cv2.COLOR_BGR2GRAY)
-    gray2 = cv2.cvtColor(frame2_resized, cv2.COLOR_BGR2GRAY)
+    # gray1 = cv2.cvtColor(frame1_resized, cv2.COLOR_BGR2GRAY)
+    # gray2 = cv2.cvtColor(frame2_resized, cv2.COLOR_BGR2GRAY)
 
     # Detecting flow using PCA
     flow = cv2.calcOpticalFlowFarneback(gray1, gray2, None, 0.5, 3, 15, 3, 5, 1.2, 0)
@@ -134,21 +129,15 @@ def detect_motion(frame1, frame2):
     display_flow(net_translation_flow_vector, rotation_flow_magnitude)
     return (net_translation_flow_vector, rotation_flow_magnitude )
 
-import cv2 as cv
+import picamera2
 
-cap = cv2.VideoCapture(2) # change according to camera input
-if not cap.isOpened():
-    print("Error: Could not open camera.")
-    exit()
-
-ret1, frame1 = cap.read()
-if not ret1:
-    print("Error: Failed to capture initial frame.")
-    cap.release()
-    exit()
+cap = picamera2.Picamera2()
+config = picamera2.cretae_preview_configuration({'format':'YUV420'})
+cap.configure(config)
+frame1 = cap.capture_array()
 
 while True:
-    ret2, frame2 = cap.read()
+    frame2 = cap.capture_array()
 
     value=detect_motion(frame1, frame2)
 

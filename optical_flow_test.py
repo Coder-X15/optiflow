@@ -1,4 +1,5 @@
 import cv2
+import picamera2
 import numpy as np
 
 def compute_optical_flow(frame1, frame2, scale=0.5, blur_ksize=(5,5), method="farneback"):
@@ -42,23 +43,13 @@ def robust_normalization(flow_magnitude, lower_percentile=5, upper_percentile=95
     return flow_magnitude
 
 # Open webcam
-cap = cv2.VideoCapture(2) # change according to camera input
-if not cap.isOpened():
-    print("Error: Could not open camera.")
-    exit()
-
-ret1, frame1 = cap.read()
-if not ret1:
-    print("Error: Failed to capture initial frame.")
-    cap.release()
-    exit()
+cap = picamera2.Picamera2()
+config = picamera2.cretae_preview_configuration({'format':'YUV420'})
+cap.configure(config)
+frame1 = cap.capture_array()
 
 while True:
-    ret2, frame2 = cap.read()
-    
-    if not ret2:
-        print("Error: Failed to capture frame.")
-        break
+    frame2 = cap.capture_array()
 
     # Detecting flow
     flow2= compute_optical_flow(frame1, frame2, method="farneback")
